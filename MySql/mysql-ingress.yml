@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/server-alias: rededor-poc-master.internal.cloudapp.net
+  labels:
+    app: zabbix
+  name: mysql-db
+spec:
+  rules:
+  - host: rededor-poc-master.internal.cloudapp.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mysql-db
+            port:
+              number: 3306

@@ -1,0 +1,4 @@
+resources:
+  - configMap.yml
+  - grafana-secret.yml
+  - grafana-deployment.yml

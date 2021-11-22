@@ -1,0 +1,23 @@
+- hosts: master
+  become: yes
+  vars_files:
+       - secrets.yml
+  tasks:
+    - name: Realizando Git Clone
+      git:
+        repo: "{{ repositorio }}"
+        dest: /root/repos
+        accept_hostkey: yes
+        force: yes
+- hosts: master
+  become: yes
+  become_user: ansible
+  vars_files:
+       - secrets.yml
+  tasks:
+    - name: Realizando Git Clone
+      git:
+        repo: "{{ repositorio }}"
+        dest: /home/ansible/repos
+        accept_hostkey: yes
+        force: yes

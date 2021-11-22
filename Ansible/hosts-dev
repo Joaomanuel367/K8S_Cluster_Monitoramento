@@ -1,0 +1,8 @@
+#Insira IP/DNS do Master e usario
+[masters]
+master ansible_host=192.168.0.15 ansible_user=root
+#Insira IP/DNS dos workers e usarios
+[workers]
+slave1 ansible_host=192.168.0.16 ansible_user=root
+slave2 ansible_host=192.168.0.17 ansible_user=root
+slave3 ansible_host=192.168.0.18 ansible_user=root

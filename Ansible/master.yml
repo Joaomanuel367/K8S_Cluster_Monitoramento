@@ -1,0 +1,28 @@
+- hosts: master
+  become: yes
+  tasks:
+    - name: Reset kubeadm
+      shell: kubeadm reset -f 
+    #Retirar a flag --ignore-preflight-errors=NumCPU caso haja 2 ou mais CPU's
+    - name: Iniciar Cluster
+      shell: kubeadm init --apiserver-advertise-address="{{ host_cluster }}" --pod-network-cidr=10.244.0.0/16
+
+    - name: Criar diretorio .kube
+      become: yes
+      become_user: ansible
+      file:
+        path: $HOME/.kube
+        state: directory
+        mode: 0755
+        
+    - name: copiar admin.conf para o user ansible
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/ansible/.kube/config
+        remote_src: yes
+        owner: ansible
+
+    - name: install Pod network
+      become: yes
+      become_user: ansible
+      shell: kubectl apply -f /home/ansible/repos/Ansible/kube-flannel.yml 

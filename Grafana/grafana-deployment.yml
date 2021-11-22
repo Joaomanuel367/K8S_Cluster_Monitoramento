@@ -1,0 +1,127 @@
+#Storage Class onde os volumes irão pegar a politica de recuperação
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: grafana-nfs
+provisioner: kubernetes.io/nfs-provisioner
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+mountOptions:
+  - debug
+volumeBindingMode: Immediate
+---
+#Esse é o responsavel por direcionar em que local os volumes serão persistidos
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: grafanalibs-pv
+spec:
+  storageClassName: grafana-nfs
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteMany
+  mountOptions:
+    - nolock
+    - soft
+    - rw
+  nfs:
+    server: 172.17.0.4
+    path: "/mnt/nfs-share/grafana"
+---
+#Esse é o responsavel por solicitar um volume persistente para o deployment grafana
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-pvc
+spec:
+  storageClassName: grafana-nfs
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 18Gi
+---
+#Esse é o service responsavel por liberar a porta de acesso aos serviço Grafana dentro do cluster
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+spec:
+  selector:
+    app: grafana
+  type: LoadBalancer
+  ports:
+    - port: 3000
+      nodePort: 30000
+---
+#Aqui estamos fazendo o deploy do grafana dentro de 2 replicas
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: grafana
+  name: grafana
+spec:  
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      securityContext:
+        fsGroup: 472
+        supplementalGroups:
+          - 0
+      containers:
+        - name: grafana
+          image: grafana/grafana:8.2.1
+          imagePullPolicy: IfNotPresent
+          env:
+            #Essa primeira variavel é onde configuramos os plugins do grafana
+            - name: GF_INSTALL_PLUGINS
+              value: "grafana-clock-panel,grafana-simple-json-datasource,alexanderzobnin-zabbix-app,camptocamp-prometheus-alertmanager-datasource,briangann-gauge-panel,vonage-status-panel,grafadruid-druid-datasource,innius-grpc-datasource,yesoreyeram-boomtheme-panel"
+            #Essa segunda variavel é onde configuramos a senha de acesso administrador ao serviço do grafana
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-user-pwd
+                  key: grafana-root-pwd
+            - name: GF_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-user-pwd
+                  key: mysql-master-root-pwd      
+          ports:
+            - containerPort: 3000
+              name: http-grafana
+              protocol: TCP
+          resources:
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          #LOCAL ONDE REALIZAREMOS AS CONFIGURAÇÕES DE VOLUME DENTRO DOS CONTAINERES
+          volumeMounts:
+            - name: grafanalibs-pv  
+              mountPath: /var/lib/grafana
+            - name: grafana-ini
+              mountPath: /etc/grafana/grafana.ini
+              subPath: grafana.ini
+            - name: grafana-ldap
+              mountPath: /etc/grafana/ldap.toml
+              subPath: ldap.toml
+
+      #AQUI NOS COLOCAMOS O VOLUME CLAIM QUE É AQUELE CONFIGURADO PARA FAZER A SOLICITACAO DE UM VOLUME PERSISTENTE #EXISTENTE PARA FORA DO CONTAINER
+      volumes:
+        - name: grafanalibs-pv
+          persistentVolumeClaim:
+            claimName: grafana-pvc
+        - name: grafana-ini
+          configMap:
+            name: grafana-config
+        - name: grafana-ldap
+          configMap:
+            name: grafana-config

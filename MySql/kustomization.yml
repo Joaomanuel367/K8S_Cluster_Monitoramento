@@ -1,0 +1,6 @@
+resources:
+  - configMap-master.yml
+  - configMap-slave.yml
+  - mysql-secret.yml
+  - mysql-master-deployment.yml
+  - mysql-slave-deployment.yml

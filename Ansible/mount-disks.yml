@@ -1,0 +1,57 @@
+- hosts: all
+  become: yes
+# Definição das Variaveis referentes aos pontos de montagem
+  vars:
+    vol_mount_itoc: "{{ caminho_montagem }}"
+    host: "{{ host-disk }}"
+    df_tmp: /tmp/.df
+    volume: volume_MonitorItoc
+    mount_points: "{{ ponto_montagem }}"
+    user: ansible
+    group: ansible
+  tasks:
+
+  # Realizando ping no host de montagem
+
+    - name: Ping NAS
+      command: ping -c1 {{ host }}
+      register: ping_ret
+
+  # Checando  se o diretorio já existe
+
+    - name: Checando se diretorio do volume existe
+      stat:
+        path: "{{ vol_mount_itoc }}"
+      register: path_vol_itoc
+  # Criar o diretorio se ele não existir
+
+    - name: Criando se não existir
+      become: yes
+      when: path_vol_itoc.stat.isdir is not defined and ping_ret is success
+      file:
+        path: "{{ vol_mount_itoc }}"
+        state: directory
+        mode: '0777'
+        owner: "{{ user }}"
+        group: "{{ group }}"
+
+  # Listando os discos montados df -kh
+
+    - name: Lista de discos montados
+      shell: df -kh > {{ df_tmp }}
+
+  # Verificando se os discos foram montados df -kh
+
+    - name: Lista {{ df_tmp }} -- Verificando se meu volume esta na lista
+      shell: cat {{ df_tmp }} | grep -w {{ vol_mount_itoc }} | awk {'print $6'}
+      register: df_vol_itoc
+
+  # Realização da montagem se ela não existir
+    - name: Configurar ponto de montagem nfs
+      mount:
+          src: "{{ host }}:{{ mount_points }}"
+          path: "{{ vol_mount_itoc }}"
+          fstype: nfs
+          opts: rw
+          state: mounted
+      when: df_vol_itoc.stdout != vol_mount_itoc and ping_ret is success

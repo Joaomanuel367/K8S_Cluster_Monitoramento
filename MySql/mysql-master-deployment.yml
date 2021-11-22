@@ -1,0 +1,155 @@
+#Esse é o stage class com as politicas de recuperação para os volumes
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: mysql-master-storage
+provisioner: kubernetes.io/no-provisioner
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+mountOptions:
+  - debug
+volumeBindingMode: Immediate
+---
+#Esse é o volume persistente, e é nele onde iremos setar o local onde os arquivos serão persistidos
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-master-pv
+spec:
+  storageClassName: mysql-master-storage
+  capacity:
+    storage: 30Gi
+  accessModes:
+    - ReadWriteMany
+  mountOptions:
+    - nolock
+    - soft
+    - rw
+  nfs:
+    server: 172.17.0.4
+    path: "/mnt/nfs-share/mysql"
+---
+#Esse é o responsavel por solicitar um volume persistente para o deployment mysql
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-master-pv-claim
+spec:
+  storageClassName: mysql-master-storage
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Gi
+---
+#Esse é o service responsavel por liberar a porta de acesso aos serviço Grafana dentro do cluster
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-master-db
+  labels:
+    app: zabbix
+    tier: db
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 3306
+    targetPort: 3306
+    nodePort: 30006
+    name: mysql-master-db
+    protocol: TCP
+#  clusterIP: None
+  externalIPs:
+    - 40.84.35.170
+  selector:
+    name: mysql-master-db
+---
+#Aqui estamos fazendo o deploy do grafana dentro de 1 replica
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql-master-db
+  labels:
+    app: zabbix
+    tier: mysql-master-db
+spec:
+  selector:
+    matchLabels:
+      name: mysql-master-db
+      app: zabbix
+      tier: mysql-master-db
+  serviceName: "mysqlservice"
+  replicas: 1
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        name: mysql-master-db
+        app: zabbix
+        tier: mysql-master-db
+    spec:
+      securityContext:
+        fsGroup: 472
+        supplementalGroups:
+          - 0
+      containers:              
+      - image: mysql:8.0.19
+        name: mysql-master-db
+        imagePullPolicy: IfNotPresent
+        args: 
+          - --character-set-server=utf8
+          - --collation-server=utf8_bin
+        env:
+        #Essa Variavel é onde estamos criando um database chamado zabbix 
+        - name: MYSQL_DATABASE
+          value: zabbix
+        #Essa Variavel é a senha root do mysql
+        - name: MYSQL_USER
+          value: zabbix
+        #Essa Variavel é a senha do user criado      
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-user-pwd
+              key: mysql-master-root-pwd
+        #Essa Variavel é a senha root do mysql
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-user-pwd
+              key: mysql-master-root-pwd
+        ports:
+        - containerPort: 3306
+          name: mysql
+        #resources:
+         #   limits:
+          #    memory: "3Gi"
+           #   cpu: "1000m"
+        #LOCAL ONDE REALIZAREMOS AS CONFIGURAÇÕES DE VOLUME DENTRO DOS CONTAINERES
+        lifecycle:
+          postStart:
+            exec:
+              command: ["bash", "-c", "/etc/mysql/my.sh"]
+        volumeMounts:
+        - name: mysql-persistent-storage
+          mountPath: /var/lib/mysql
+        - name: mysql-config-master
+          mountPath: /etc/mysql/my.sh
+          subPath: my.sh
+        - name: mysql-master-sh
+          mountPath: /etc/mysql/master.sh
+          subPath: master.sh
+      volumes:
+      #AQUI NOS COLOCAMOS O VOLUME CLAIM QUE É AQUELE CONFIGURADO PARA FAZER A SOLICITACAO DE UM VOLUME PERSISTENTE #EXISTENTE PARA FORA DO CONTAINER
+      - name: mysql-config-master
+        configMap:
+          name: mysql-master-config
+          defaultMode : 0777
+      - name: mysql-master-sh
+        configMap:
+          name: mysql-master-config 
+          defaultMode : 0777   
+      - name: mysql-persistent-storage
+        persistentVolumeClaim:
+          claimName: mysql-master-pv-claim

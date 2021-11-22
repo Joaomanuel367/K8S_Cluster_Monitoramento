@@ -1,0 +1,74 @@
+- hosts: all
+  become: yes
+  tasks:  
+   - name: Instalando docker
+     yum:
+      name: docker
+      state: present
+      update_cache: true
+
+   - name: Fazendo Start Docker
+     service:
+      name: docker
+      state: started
+  
+   - name: Habilitar o docker
+     shell: systemctl enable docker.service
+
+   - name: Definir valor do net.bridge.bridge-nf-call-ip6tables para 1
+     sysctl:
+      name: net.bridge.bridge-nf-call-ip6tables
+      value: 1
+      state: present
+
+   - name: Definir valor do net.bridge.bridge-nf-call-iptables para 1
+     sysctl:
+      name: net.bridge.bridge-nf-call-iptables
+      value: 1
+      state: present
+
+   - name: Adionar repositorio Kubernetes
+     yum_repository:
+      name: Kubernetes
+      description: Repositorio yum Kubernetes
+      baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+      gpgkey: https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+      gpgcheck: yes
+
+   - name: Instalando kubelet
+     yum:
+        name: kubelet
+        state: present
+        update_cache: true
+    
+   - name: Instalando kubeadm
+     yum:
+        name: kubeadm
+        state: present
+  
+   - name: Iniciar kubectl
+     service:
+      name: kubelet
+      enabled: yes
+      state: started
+
+   - name: Install git
+     yum:
+      name: git
+      state: present
+      update_cache: yes
+
+   - name: Desabilitando SElinux
+     command: setenforce 0
+
+   - name: Desabilitando SElinnux no reboot
+     selinux:
+      state: disabled
+
+- hosts: master
+  become: yes
+  tasks:
+    - name: instalando kubectl no master
+      yum:
+        name: kubectl
+        state: present

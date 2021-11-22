@@ -1,0 +1,4 @@
+resources:
+  - configMap.yml
+  - zabbix-frontend.yml
+  - zabbix-server.yml

@@ -1,0 +1,196 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: zabbix-server
+  labels:
+    app: zabbix-server
+spec:
+  type: LoadBalancer
+  ports:
+  - name: "10051"
+    port: 10051
+    targetPort: 10051
+    nodePort: 30051
+  externalIPs:
+    - 10.150.30.14
+  selector:
+    app: zabbix-server
+---
+#Storage Class onde os volumes irão pegar a politica de recuperação
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: zabbixlibs-nfs
+provisioner: kubernetes.io/nfs-provisioner
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+mountOptions:
+  - debug
+volumeBindingMode: Immediate
+---
+#Esse é o responsavel por direcionar em que local os volumes serão persistidos
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: zabbix-libs-pv
+spec:
+  storageClassName: zabbix-nfs
+  capacity:
+    storage: 3Gi
+  accessModes:
+    - ReadWriteMany
+  mountOptions:
+    - nolock
+    - soft
+    - rw
+  nfs:
+    server: 172.17.0.4
+    path: "/mnt/nfs-share/zabbix/libs"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zabbix-libs-pvc
+spec:
+  storageClassName: zabbix-nfs
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 3Gi
+  volumeName: zabbix-libs-pv
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: zabbixs-scripts-pv
+spec:
+  storageClassName: zabbix-nfs
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteMany
+  mountOptions:
+    - nolock
+    - soft
+    - rw
+  nfs:
+    server: 172.17.0.4
+    path: "/mnt/nfs-share/zabbix/etc"
+---
+#Esse é o responsavel por solicitar um volume persistente para o deployment zabbix
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zabbixs-scripts-pvc
+spec:
+  storageClassName: zabbix-nfs
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 2Gi
+  volumeName: zabbixs-scripts-pv  
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zabbix-server
+  labels:
+    name: zabbix-server
+    app: zabbix-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: zabbix-server
+      app: zabbix-server
+  template:
+    metadata:
+      labels:
+        name: zabbix-server
+        app: zabbix-server
+    spec:
+      containers:
+        - name: zabbix-server
+          image: joaomanuel/zbx-server:5.0
+          imagePullPolicy: IfNotPresent 
+          ports:
+            - containerPort: 10051
+              name: zabbix-trapper
+            - containerPort: 10052
+              name: zabbix-jmx
+          env:
+            - name: DB_SERVER_HOST
+              value: "mysql-master-db"
+            - name: DB_SERVER_PORT
+              value: "3306"
+            - name: MYSQL_USER
+              value: "zabbix"
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-user-pwd
+                  key: mysql-master-root-pwd
+            - name: MYSQL_DATABASE
+              value: "zabbix"
+          resources:
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          volumeMounts:
+            - name: zabbixlibs-pv
+              mountPath: /var/lib/zabbix
+            - name: zabbixs-scripts-pv
+              mountPath: /usr/lib/zabbix/
+            - name: zabbix-conf
+              mountPath: /etc/zabbix/zabbix_server.conf
+              subPath: zabbix_server.conf
+            - name: odbcinst-ini
+              mountPath: /etc/odbcinst.ini
+              subPath: odbcinst.ini
+            - name: odbc-ini
+              mountPath: /etc/odbc.ini
+              subPath: odbc.ini
+            - name: tnsnames-ora
+              mountPath: /usr/lib/oracle/12.2/client64/network/admin/tnsnames.ora
+              subPath: tnsnames.ora
+        - name: zabbix-agent
+          image: zabbix/zabbix-agent
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 10050
+            name: zabbix-agent
+          env:
+          - name: ZBX_HOSTNAME
+            value: "Zabbix server"
+          - name: ZBX_SERVER_HOST
+            value: "zabbix-server"
+          - name: ZBX_PASSIVE_ALLOW
+            value: "true"
+          - name: ZBX_STARTAGENTS
+            value: "3"
+          - name: ZBX_TIMEOUT
+            value: "10"
+          securityContext:
+            privileged: true
+      #AQUI NOS COLOCAMOS O VOLUME CLAIM QUE É AQUELE CONFIGURADO PARA FAZER A SOLICITACAO DE UM VOLUME PERSISTENTE #EXISTENTE PARA FORA DO CONTAINER
+      volumes:
+        - name: zabbixlibs-pv
+          persistentVolumeClaim:
+            claimName: zabbix-libs-pvc
+        - name: zabbixs-scripts-pv
+          persistentVolumeClaim:
+            claimName: zabbixs-scripts-pvc
+        - name: zabbix-conf
+          configMap:
+            name: zabbix-config
+        - name: odbcinst-ini
+          configMap:
+            name: zabbix-config
+        - name: odbc-ini
+          configMap:
+            name: zabbix-config
+        - name: tnsnames-ora
+          configMap:
+            name: zabbix-config

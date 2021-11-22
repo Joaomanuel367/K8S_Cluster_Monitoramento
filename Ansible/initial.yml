@@ -1,0 +1,36 @@
+- hosts: master
+  become_user: ansible
+  tasks:
+    - name: Validando se os servidores estão no ar
+      wait_for:
+        port: 22
+        host: '{{ item }}'
+        search_regex: OpenSSH
+        delay: 10
+        timeout: 120
+      connection: local
+      with_items:
+      - 40.84.44.212
+      - 40.84.42.203
+      - 40.79.36.209
+
+- hosts: all
+  become: yes
+  tasks:
+    - name: Criar user 'ansible'
+      user: name=ansible append=yes state=present createhome=yes shell=/bin/bash
+
+    - name: Desabilitar senha para comando sudo do user 'ansible'
+      lineinfile:
+        dest: /etc/sudoers
+        line: 'ansible ALL=(ALL) NOPASSWD: ALL'
+        validate: 'visudo -cf %s'
+
+    - name: Setando as keys do user 'ansible'
+      authorized_key: user=ansible key="{{item}}"
+      with_file:
+        - ~/.ssh/id_rsa.pub
+    
+    - name: Desabilitar Swapp
+      shell: swapoff -a
+      

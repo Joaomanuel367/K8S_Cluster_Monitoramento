@@ -1,0 +1,3 @@
+resources:
+  - metrics-server.yml
+  - hpa-autoscaling.yml

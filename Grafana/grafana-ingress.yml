@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: grafana-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+    nginx.ingress.kubernetes.io/configuration-snippet: |-
+spec:
+  tls:
+  - hosts:
+      - labgrafana.com
+    secretName: grafana-secret-tls
+  rules:
+  - host: labgrafana.com
+    http:
+      paths:
+       - pathType: Prefix
+         path: /grafana
+         backend:
+            service:
+              name: grafana
+              port: 
+               number: 3000
