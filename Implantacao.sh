@@ -51,7 +51,7 @@ mkdir  $HOME/kube-disparos
 cd  $HOME/kube-disparos
 
 #Aqui estamos fazendo o clone do repositorio onde tem os artefatos para o diretorio kube-disparos e realizando a #mudança de permissoes
-sudo git clone https://$gituser:$gittoken@umane.everis.com/git/REDEDOR/laboratorio-grafana.git
+sudo git clone 
 sudo chown -R ansible:ansible  $HOME/kube-disparos
 
 #Primeiro disparo do ansible é para concluir as depedencias para uso do ansible e kubernetes
