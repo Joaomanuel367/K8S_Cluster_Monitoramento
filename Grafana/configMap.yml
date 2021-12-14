@@ -3,24 +3,6 @@ kind: ConfigMap
 metadata:
   name: grafana-config
 data:
-  ldap.toml: |
-    [[servers]]
-    host = "10.250.0.150"
-    port = 389
-    use_ssl = false
-    start_tls = false
-    ssl_skip_verify = false
-    bind_dn = "REDEDOR\\%s"
-    search_filter = "(sAMAccountName=%s)"
-    search_base_dns = ["dc=rededor,dc=corp"]
-
-    [servers.attributes]
-    name = "givenName"
-    surname = "sn"
-    username = "sAMAccountName"
-    member_of = "memberOf"
-    email =  "mail"
-
   grafana.ini: |
     ##################### Grafana Configuration Example #####################
     #
