@@ -2,6 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: mysql-slave-config
+  
 data:
   my.sh: |
     serverid=$(cat /proc/sys/kernel/random/uuid | awk -F- '{printf $1}' | sed 's/[a-zA-Z]//g')
@@ -43,6 +44,8 @@ data:
     /etc/mysql/slave.sh &
   slave.sh: |
     sleep 15
+    mysql -uroot -p$MYSQL_ROOT_PASSWORD -S /var/lib/mysql/mysql.sock -e "STOP SLAVE;"
+    mysql -uroot -p$MYSQL_ROOT_PASSWORD -S /var/lib/mysql/mysql.sock -e "RESET SLAVE;"
     mysqldump -h mysql-master-db -uroot -p$MYSQL_ROOT_PASSWORD --all-databases --set-gtid-purged=off > /etc/mysql/dump.sql
     mysql -uroot -p$MYSQL_ROOT_PASSWORD -S /var/lib/mysql/mysql.sock < /etc/mysql/dump.sql
     mysql -uroot -p$MYSQL_ROOT_PASSWORD -S /var/lib/mysql/mysql.sock -e "UNLOCK TABLES;"

@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zabbix-frontend
+  
   labels:
     app: zabbix-web
 spec:
@@ -9,9 +10,9 @@ spec:
   ports:
   - port: 8080
     targetPort: 8080
-    nodePort: 30080
+    nodePort: 31080
   externalIPs:
-    - 40.84.35.170  
+    - 20.119.193.135  
   selector:
     app: zabbix-web
 ---
@@ -19,6 +20,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: zabbix-frontend
+  
   labels:
     app: zabbix-web
     tier: frontend
@@ -35,7 +37,7 @@ spec:
         tier: frontend
     spec:
       containers:
-      - image: zabbix/zabbix-web-apache-mysql:alpine-5.0.0
+      - image: zabbix/zabbix-web-apache-mysql:alpine-5.4.7
         name: zabbix-frontend
         imagePullPolicy: IfNotPresent
         ports:

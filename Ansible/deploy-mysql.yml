@@ -3,4 +3,4 @@
   become_user: ansible
   tasks:
     - name: Implatação MySql Master e Slave
-      shell: kubectl apply -k /home/ansible/repos/MySql/
+      shell: kubectl apply -k   /home/ansible/repos/MySql/

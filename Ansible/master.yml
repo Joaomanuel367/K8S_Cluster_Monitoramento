@@ -1,11 +1,14 @@
 - hosts: master
   become: yes
   tasks:
-    - name: Reset kubeadm
-      shell: kubeadm reset -f 
-    #Retirar a flag --ignore-preflight-errors=NumCPU caso haja 2 ou mais CPU's
+    - name: Checando se já existe um cluster
+      become_user: ansible
+      shell: kubectl get node | grep master | awk -F" " '{print $2}'
+      register: valid_cluster
+
     - name: Iniciar Cluster
-      shell: kubeadm init --apiserver-advertise-address="{{ host_cluster }}" --pod-network-cidr=10.244.0.0/16
+      shell: kubeadm init --apiserver-advertise-address=172.17.0.4 --pod-network-cidr=10.244.0.0/16
+      when: valid_cluster.stdout != "Ready"
 
     - name: Criar diretorio .kube
       become: yes
@@ -18,7 +21,7 @@
     - name: copiar admin.conf para o user ansible
       copy:
         src: /etc/kubernetes/admin.conf
-        dest: /home/ansible/.kube/config
+        dest:   /home/ansible/.kube/config
         remote_src: yes
         owner: ansible
 

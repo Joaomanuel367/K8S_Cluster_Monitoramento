@@ -3,6 +3,7 @@ apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: grafana-nfs
+  
 provisioner: kubernetes.io/nfs-provisioner
 reclaimPolicy: Retain
 allowVolumeExpansion: true
@@ -15,6 +16,7 @@ apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: grafanalibs-pv
+  
 spec:
   storageClassName: grafana-nfs
   capacity:
@@ -27,26 +29,62 @@ spec:
     - rw
   nfs:
     server: 172.17.0.4
-    path: "/mnt/nfs-share/grafana"
+    path: "/mnt/nfs-share//grafana"
 ---
 #Esse é o responsavel por solicitar um volume persistente para o deployment grafana
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: grafana-pvc
+  
 spec:
   storageClassName: grafana-nfs
   accessModes:
     - ReadWriteMany
   resources:
     requests:
-      storage: 18Gi
+      storage: 18Gi    
+---
+#Esse é o responsavel por direcionar em que local os volumes serão persistidos
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: grafanalog-pv
+  
+spec:
+  storageClassName: grafana-nfs
+  capacity:
+    storage: 3Gi
+  accessModes:
+    - ReadWriteMany
+  mountOptions:
+    - nolock
+    - soft
+    - rw
+  nfs:
+    server: 172.17.0.4
+    path: "/mnt/nfs-share//grafana/logs"
+---
+#Esse é o responsavel por solicitar um volume persistente para o deployment grafana
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafanalog-pvc
+  
+spec:
+  storageClassName: grafana-nfs
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 3Gi
 ---
 #Esse é o service responsavel por liberar a porta de acesso aos serviço Grafana dentro do cluster
 apiVersion: v1
 kind: Service
 metadata:
   name: grafana
+  
 spec:
   selector:
     app: grafana
@@ -62,6 +100,7 @@ metadata:
   labels:
     app: grafana
   name: grafana
+  
 spec:  
   replicas: 1
   selector:
@@ -78,7 +117,7 @@ spec:
           - 0
       containers:
         - name: grafana
-          image: grafana/grafana:8.2.1
+          image: grafana/grafana:8.3.0
           imagePullPolicy: IfNotPresent
           env:
             #Essa primeira variavel é onde configuramos os plugins do grafana
@@ -93,11 +132,11 @@ spec:
             - name: GF_DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: mysql-user-pwd
-                  key: mysql-master-root-pwd      
+                  name: grafana-user-pwd
+                  key: grafana-db-root-pwd     
           ports:
             - containerPort: 3000
-              name: http-grafana
+              name: https-grafana
               protocol: TCP
           resources:
             limits:
@@ -107,6 +146,8 @@ spec:
           volumeMounts:
             - name: grafanalibs-pv  
               mountPath: /var/lib/grafana
+            - name: grafanalogs-pv  
+              mountPath: /var/log/grafana
             - name: grafana-ini
               mountPath: /etc/grafana/grafana.ini
               subPath: grafana.ini
@@ -119,6 +160,9 @@ spec:
         - name: grafanalibs-pv
           persistentVolumeClaim:
             claimName: grafana-pvc
+        - name: grafanalogs-pv
+          persistentVolumeClaim:
+            claimName: grafanalog-pvc
         - name: grafana-ini
           configMap:
             name: grafana-config

@@ -3,6 +3,7 @@ apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: mysql-master-storage
+  
 provisioner: kubernetes.io/no-provisioner
 reclaimPolicy: Retain
 allowVolumeExpansion: true
@@ -15,6 +16,7 @@ apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: mysql-master-pv
+  
 spec:
   storageClassName: mysql-master-storage
   capacity:
@@ -27,13 +29,14 @@ spec:
     - rw
   nfs:
     server: 172.17.0.4
-    path: "/mnt/nfs-share/mysql"
+    path: "/mnt/nfs-share//mysql"
 ---
 #Esse é o responsavel por solicitar um volume persistente para o deployment mysql
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: mysql-master-pv-claim
+  
 spec:
   storageClassName: mysql-master-storage
   accessModes:
@@ -47,6 +50,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: mysql-master-db
+  
   labels:
     app: zabbix
     tier: db
@@ -60,7 +64,7 @@ spec:
     protocol: TCP
 #  clusterIP: None
   externalIPs:
-    - 40.84.35.170
+    - 20.119.193.135
   selector:
     name: mysql-master-db
 ---
@@ -69,6 +73,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mysql-master-db
+  
   labels:
     app: zabbix
     tier: mysql-master-db
@@ -119,6 +124,16 @@ spec:
             secretKeyRef:
               name: mysql-user-pwd
               key: mysql-master-root-pwd
+        readinessProbe:
+          tcpSocket:
+            port: 3306
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: 3306
+          initialDelaySeconds: 15
+          periodSeconds: 20
         ports:
         - containerPort: 3306
           name: mysql
@@ -131,6 +146,9 @@ spec:
           postStart:
             exec:
               command: ["bash", "-c", "/etc/mysql/my.sh"]
+          #postStop:
+           # exec:
+            #  command: ["bash", "-c", "/etc/mysql/virada.sh"]
         volumeMounts:
         - name: mysql-persistent-storage
           mountPath: /var/lib/mysql

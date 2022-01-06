@@ -1,15 +1,22 @@
 - hosts: all
   become: yes
-  tasks:  
+  tasks:
+   - name: Adionar repositorio Docker
+     shell: yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
    - name: Instalando docker
      yum:
-      name: docker
-      state: present
-      update_cache: true
+      name: "{{ packages }}"
+     vars:
+      packages:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
 
-   - name: Fazendo Start Docker
+   - name: Iniciar docker
      service:
       name: docker
+      enabled: yes
       state: started
   
    - name: Habilitar o docker
@@ -45,8 +52,14 @@
      yum:
         name: kubeadm
         state: present
+
+   - name: Configurar cgroup-Driver do kubelet
+     shell: cgroup=$(docker info | grep "Cgroup Driver" | awk -F" " '{printf $3}') && echo "KUBELET_EXTRA_ARGS=--cgroup-driver=$cgroup" > /etc/sysconfig/kubelet
+
+   - name: Config Registry
+     shell: echo "ewogICJpbnNlY3VyZS1yZWdpc3RyaWVzIiA6IFsibmV4dXMzLnVtYW5lcGxhdGZvcm0uY29tOjgwODIiLCJuZXh1czMudW1hbmVwbGF0Zm9ybS5jb206ODA4MyJdCn0K" |base64 -i --decode > /etc/docker/daemon.json
   
-   - name: Iniciar kubectl
+   - name: Iniciar kubelet
      service:
       name: kubelet
       enabled: yes
@@ -58,12 +71,11 @@
       state: present
       update_cache: yes
 
+    #Desabilitando o SElinux
    - name: Desabilitando SElinux
      command: setenforce 0
-
-   - name: Desabilitando SElinnux no reboot
-     selinux:
-      state: disabled
+     register: command_result
+     failed_when: "'FAILED' in command_result.stderr"
 
 - hosts: master
   become: yes

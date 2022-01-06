@@ -2,5 +2,5 @@
   become: yes
   become_user: ansible
   tasks:
-    - name: Depedencias Grafana
+    - name: Depedencias Autoscaling
       shell: kubectl apply -k /home/ansible/repos/Autoscaling

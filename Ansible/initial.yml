@@ -6,13 +6,13 @@
         port: 22
         host: '{{ item }}'
         search_regex: OpenSSH
-        delay: 10
+        delay: 5
         timeout: 120
       connection: local
       with_items:
-      - 40.84.44.212
-      - 40.84.42.203
-      - 40.79.36.209
+      - 20.114.208.90
+      - 20.119.232.161
+      - 20.114.136.38
 
 - hosts: all
   become: yes
@@ -23,13 +23,13 @@
     - name: Desabilitar senha para comando sudo do user 'ansible'
       lineinfile:
         dest: /etc/sudoers
-        line: 'ansible ALL=(ALL) NOPASSWD: ALL'
+        line: 'ansible ALL=(ansible) NOPASSWD:/usr/bin/kubectl, /usr/bin/yum, /usr/bin/rpm, /usr/sbin/service'
         validate: 'visudo -cf %s'
 
     - name: Setando as keys do user 'ansible'
       authorized_key: user=ansible key="{{item}}"
       with_file:
-        - ~/.ssh/id_rsa.pub
+        -   /home/ansible/.ssh/id_rsa.pub
     
     - name: Desabilitar Swapp
       shell: swapoff -a

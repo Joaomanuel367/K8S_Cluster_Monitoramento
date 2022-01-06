@@ -1,0 +1,68 @@
+image: docker:stable
+
+# stages:
+# - build
+# - test
+# - deploy
+
+services:
+- docker:dind
+
+build-docker:
+  stage: build
+  only:
+    - main
+  when: manual
+  script:
+    - apk add --update coreutils 
+    - mkdir -p ~/.docker/ /etc/docker/
+    - docker login -u jvilanir -p 'Ffhet5l!dD' nexus3.umaneplatform.com:8083
+    - echo $CI_CONFIG_JSON |base64 -i --decode > ~/.docker/config.json
+    - echo $CI_DAEMON_JSON |base64 -i --decode > /etc/docker/daemon.json
+    - docker info
+    - echo "$CI_SSH_PRIVATE_KEY" > $(pwd)/docker_build/id_rsa
+    - echo "$CI_SSH_AUTHORIZED_KEY" > $(pwd)/docker_build/authorized_keys
+    - docker build -t nexus3.umaneplatform.com:8083/image-ansible:1.0 ./docker_build/
+    - docker push nexus3.umaneplatform.com:8083/image-ansible:1.0
+
+# test-Sintax:
+#   image: nexus3.umaneplatform.com:8083/image-ansible:1.0
+#   stage: test
+#   only:
+#     - merge_requests
+#   dependencies:
+#     - "build-docker"
+#   script:
+#     - for arq in $(ls ./Ansible/initial.yml ./Ansible/dependencies.yml ./Ansible/mount-disks.yml ./Ansible/master.yml ./Ansible/workers.yml ./Ansible/deploy-mysql.yml ./Ansible/deploy-grafana.yml ./Ansible/deploy-zabbix.yml ./Ansible/deploy-autoscaling.yml); do echo $arq && ansible-playbook -i ./Ansible/hosts $arq --check --diff;done
+#     - ansible-playbook -i ./Ansible/hosts ./Ansible/git-config.yml --vault-password-file ./Ansible/.asda
+# test-Sanity:
+#   stage: test
+#   only:
+#     - merge_requests
+#   script:
+#     - echo "Aqui vai ser os testes de integridade"
+
+# test-Unit:
+#   stage: test
+#   only:
+#     - merge_requests
+#   script:
+#     - echo "Aqui vai ser os testes unitarios"
+
+# test-Integration:
+#   stage: test
+#   only:
+#     - merge_requests
+#   script:
+#     - echo "Aqui vai ser os testes de integração testando ponta a ponta do código"
+
+deploy-prod:
+  image: nexus3.umaneplatform.com:8083/image-ansible:1.0
+  only:
+    - main
+  when: manual
+  stage: deploy
+  script:
+    - echo $CI_COMMIT_BRANCH
+    - echo $CI_DEFAULT_BRANCH
+    - chmod +x ./docker_build/integracao_continua.sh && ./docker_build/integracao_continua.sh

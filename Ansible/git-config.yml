@@ -5,7 +5,7 @@
   tasks:
     - name: Realizando Git Clone
       git:
-        repo: "{{ repositorio }}"
+        repo: "https://{{gituser}}:{{gitpass}}@umane.everis.com/git/REDEDOR/laboratorio-grafana.git"
         dest: /root/repos
         accept_hostkey: yes
         force: yes
@@ -17,7 +17,7 @@
   tasks:
     - name: Realizando Git Clone
       git:
-        repo: "{{ repositorio }}"
-        dest: /home/ansible/repos
+        repo: "https://{{gituser}}:{{gitpass}}@umane.everis.com/git/REDEDOR/laboratorio-grafana.git"
+        dest:   /home/ansible/repos
         accept_hostkey: yes
         force: yes

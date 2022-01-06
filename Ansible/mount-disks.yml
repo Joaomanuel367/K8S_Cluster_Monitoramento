@@ -2,11 +2,11 @@
   become: yes
 # Definição das Variaveis referentes aos pontos de montagem
   vars:
-    vol_mount_itoc: "{{ caminho_montagem }}"
-    host: "{{ host-disk }}"
+    vol_mount_itoc: /opt/Monitor_ITOC
+    host: 172.17.0.4
     df_tmp: /tmp/.df
     volume: volume_MonitorItoc
-    mount_points: "{{ ponto_montagem }}"
+    mount_points: /mnt/nfs-share/
     user: ansible
     group: ansible
   tasks:

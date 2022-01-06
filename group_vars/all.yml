@@ -1,0 +1,11 @@
+---
+#Arquivo mount-disks
+host-disk: 172.17.0.4
+ponto_montagem: '/mnt/nfs-share/'
+caminho_montagem: '/opt/Monitor_ITOC'
+
+#Arquivo Git-Config
+repositorio: 'https://{{gituser}}:{{gitpass}}@umane.everis.com/git/REDEDOR/laboratorio-grafana.git'
+
+#Arquivo master.yml
+host_cluster: 172.17.0.4

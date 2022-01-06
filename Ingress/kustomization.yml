@@ -1,0 +1,4 @@
+resources:
+  - ingress-controller.yml
+  - grafana-ingress.yml
+  #- zabbix-ingress.yml

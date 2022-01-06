@@ -3,6 +3,7 @@ apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: mysql-slave-storage
+  
 provisioner: kubernetes.io/no-provisioner
 reclaimPolicy: Retain
 allowVolumeExpansion: true
@@ -15,6 +16,7 @@ apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: mysql-slave-pv
+  
 spec:
   storageClassName: mysql-slave-storage
   capacity:
@@ -34,6 +36,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: mysql-slave-pv-claim
+  
 spec:
   storageClassName: mysql-slave-storage
   accessModes:
@@ -47,6 +50,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: mysql-slave-db
+  
   labels:
     app: zabbix
     tier: db
@@ -67,6 +71,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mysql-slave-db
+  
   labels:
     app: zabbix
     tier: mysql-slave-db

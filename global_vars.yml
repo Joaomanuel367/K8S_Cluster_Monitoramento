@@ -1,0 +1,7 @@
+imageGrafana: grafana/grafana:8.3.0
+imageMysql: mysql:8.0.19
+User: ansible
+IpMaster: 172.17.0.4
+IpNFS: 172.17.0.4
+DestVolMount: /opt/Monitor_ITOC
+MountPoints: /mnt/nfs-share/

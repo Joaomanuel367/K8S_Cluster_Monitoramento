@@ -51,7 +51,7 @@ mkdir  $HOME/kube-disparos
 cd  $HOME/kube-disparos
 
 #Aqui estamos fazendo o clone do repositorio onde tem os artefatos para o diretorio kube-disparos e realizando a #mudança de permissoes
-sudo git clone 
+sudo git clone https://$gituser:$gittoken@umane.everis.com/git/REDEDOR/laboratorio-grafana.git
 sudo chown -R ansible:ansible  $HOME/kube-disparos
 
 #Primeiro disparo do ansible é para concluir as depedencias para uso do ansible e kubernetes
@@ -93,7 +93,14 @@ ansible-playbook -i hosts deploy-grafana.yml
 echo -e "\n Instalando o Zabbix nos nodes \n"
 ansible-playbook -i hosts deploy-zabbix.yml
 
+#Aqui iniciamos a implantação do ingress-controller
+echo -e "\n Instalando o Ingress-controller nos nodes \n"
+ansible-playbook -i hosts deploy-ingress.yml
+
 #Aqui iniciamos a implantação e configuração do servidor de metrics e do HPA responsavel pelo auto escalonamento dos #pods
 echo -e "\n Configurando Autoscaler \n"
 ansible-playbook -i  hosts deploy-autoscaling.yml
+
+echo -e "\n Limpar diretorios \n"
+rm -rf $HOME/kube-disparos $HOME/repos
 echo "# ============ Ambiente implantado ============#"

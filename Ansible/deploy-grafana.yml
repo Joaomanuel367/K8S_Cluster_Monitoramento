@@ -3,4 +3,4 @@
   become_user: ansible
   tasks:
     - name: Depedencias Grafana
-      shell: kubectl apply -k /home/ansible/repos/Grafana
+      shell: kubectl apply -k   /home/ansible/repos/Grafana
