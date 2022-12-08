@@ -57,4 +57,4 @@ Mysql 8.0.19 - O MySQL é um sistema de gerenciamento de banco de dados, que uti
 Para as versões disponíveis, observe as tags neste repositório.
 
 # ✒️ Autores
-Equipe de SRE da everis
+Eu mesmo
